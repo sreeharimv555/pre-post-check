@@ -1,0 +1,60 @@
+---
+- name: Check for pre-check folder
+  shell: ls -ltr {{ postcheck_folder }}
+  register: pre_folder
+  ignore_errors: yes
+
+- name: Pre-checks folder not found on {{ ansible_hostname }}. Exiting Playbook...
+  fail:
+    msg: Pre-checks folder not found on {{ ansible_hostname }}. Exiting Playbook...
+  when: pre_folder.stdout == "total 0" or pre_folder.rc != 0
+
+- name: Create the folder to take post-checks
+  file:
+    path: "{{ postcheck_folder }}"
+    state: directory
+
+- name: Collect file system details 
+  shell: df -hTP | egrep -v "tmpfs|Type" | awk -v OFS='\t\t' '{print $1,$2,$7}' | sort > {{ postcheck_folder }}/df-post.txt
+
+- name: Collect running services details
+  shell: /usr/bin/systemctl list-units --type service --all | grep active | grep running | sort > {{ postcheck_folder }}/services-post.txt
+
+- name: Collect mount details 
+  shell: cat /proc/mounts > {{ postcheck_folder }}/mounts-post.txt
+
+- name: Collect IP Address
+  shell: /sbin/ip a 2>/dev/null > {{ postcheck_folder }}/ipaddr-post.txt
+
+- name: Collect OS and version 
+  copy: content='Kernel_version:{{ ansible_kernel}}\n' dest={{ postcheck_folder }}/osver-post.txt
+
+- name: Collect systcl loaded parameters 
+  shell: sysctl -a | sort > {{ postcheck_folder }}/sysctl-post.txt
+
+- name: Collect resolv.conf details. 
+  copy: src=/etc/resolv.conf dest={{ postcheck_folder }}/resolv.conf-post.txt remote_src=yes
+
+- name: Collect route details
+  shell: route -n > {{ postcheck_folder }}/route-post.txt
+
+- name: Create folder on controller machine.
+  file:
+    path: /root/pre-post/{{ ansible_hostname }}/{{ ansible_date_time.year }}/{{ ansible_date_time.month }}
+    state: directory
+  delegate_to: localhost
+
+- name: Copy postchecks of {{ ansible_hostname }} to controller node
+  fetch:
+    src: "{{ postcheck_folder }}/{{ item }}"
+    dest: /root/pre-post/{{ ansible_hostname }}/{{ ansible_date_time.year }}/{{ ansible_date_time.month }}/
+    flat: yes
+  loop:
+    - df-post.txt
+    - ipaddr-post.txt
+    - mounts-post.txt
+    - osver-post.txt
+    - resolv.conf-post.txt
+    - route-post.txt
+    - services-post.txt
+    - sysctl-post.txt

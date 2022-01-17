@@ -1,0 +1,9 @@
+---
+- name: Playbook for collecting pre-checks
+  hosts: localhost
+  become: yes
+
+
+  roles:
+    - precheck
+

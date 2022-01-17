@@ -1,0 +1,44 @@
+---
+- name: Compare  pre-post file system details. 
+  shell: sdiff {{ postcheck_folder }}/df-pre.txt {{ postcheck_folder }}/df-post.txt | grep '<' | awk '{print $1}'
+  register: diff_df
+
+- shell: if [ -z {{diff_df.stdout}} ]; then echo "df_match"; else echo "df_not_match";fi
+  register: df_stat
+
+- debug:
+    msg: "File system status looks good on {{ ansible_nodename }}"
+  when: df_stat.stdout == "df_match"
+
+- debug:
+    msg: "FILE SYSTEM {{ diff_df.stdout }}  NOT MOUNTED ON {{ ansible_nodename }}"
+  when: df_stat.stdout == "df_not_match"
+
+- name: Compare pre-post running services details. 
+  shell: sdiff {{ postcheck_folder }}/services-pre.txt {{ postcheck_folder }}/services-post.txt | grep '<' | awk '{print $1}' | cut -d '.' -f 1
+  register: diff_serv
+
+- shell: if [ -z {{ diff_serv.stdout }} ]; then echo "serv_match"; else echo "serv_not_match";fi
+  register: serv_stat_oel7
+  when: ansible_distribution_major_version == '7'
+
+- debug:
+    msg: "Service status looks good on {{ ansible_nodename }}"
+  when: serv_stat_oel7.stdout == "serv_match"
+
+- debug:
+    msg: "SERVICES {{diff_serv.stdout}} NOT STARTED ON {{ ansible_nodename }}"
+  when: serv_stat_oel7.stdout == "serv_not_match"
+
+- name: Compare resolv.conf
+  shell: resolv_stat=$(diff {{ postcheck_folder }}/resolv.conf-pre.txt /etc/resolv.conf);
+         if [ -z $resolv_stat ]; then echo "resolv_match"; else echo "resolv_not_match";fi
+  register: diff_resolv
+
+- debug:
+    msg: "resolv.conf entries are OK on {{ ansible_nodename }}"
+  when: diff_resolv.stdout == "resolv_match"
+
+- debug:
+    msg: "RESOLV.CONF VALUES  ARE NOT MATCHING ON {{ ansible_nodename }}"
+  when: diff_resolv.stdout == "resolv_not_match"

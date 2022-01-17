@@ -1,0 +1,54 @@
+---
+- name: Create the folder to take pre-checks
+  file:
+    path: "{{ precheck_folder }}"
+    state: directory
+
+- name: Collect file system details 
+  shell: df -hTP | egrep -v "tmpfs|Type" | awk -v OFS='\t\t' '{print $1,$2,$7}' | sort > {{ precheck_folder }}/df-pre.txt
+
+- name: Collect running services details
+  shell: /usr/bin/systemctl list-units --type service --all | grep active | grep running | sort > {{ precheck_folder }}/services-pre.txt
+
+- name: Collect mount details 
+  shell: cat /proc/mounts > {{ precheck_folder }}/mounts-pre.txt
+
+- name: Collect IP Address
+  shell: /sbin/ip a 2>/dev/null > {{ precheck_folder }}/ipaddr-pre.txt
+
+- name: Collect OS and version 
+  copy: content='Kernel_version:{{ ansible_kernel}}\n' dest={{ precheck_folder }}/osver-pre.txt
+
+- name: Collect systcl loaded parameters 
+  shell: sysctl -a | sort > {{ precheck_folder }}/sysctl-pre.txt
+
+- name: Collect resolv.conf details. 
+  copy: src=/etc/resolv.conf dest={{ precheck_folder }}/resolv.conf-pre.txt remote_src=yes
+
+- name: Collect route details
+  shell: route -n > {{ precheck_folder }}/route-pre.txt
+
+- name: Collect history details
+  shell: history > {{ precheck_folder }}/history.txt
+
+- name: Create folder on controller machine. 
+  file:
+    path: /root/pre-post/{{ ansible_hostname }}/{{ ansible_date_time.year }}/{{ ansible_date_time.month }}
+    state: directory
+  delegate_to: localhost
+
+- name: Copy prechecks for {{ ansible_hostname }}
+  fetch:
+    src: "{{ precheck_folder }}/{{ item }}"
+    dest: /root/pre-post/{{ ansible_hostname }}/{{ ansible_date_time.year }}/{{ ansible_date_time.month }}/
+    flat: yes
+  loop:
+    - df-pre.txt
+    - ipaddr-pre.txt
+    - mounts-pre.txt
+    - osver-pre.txt
+    - resolv.conf-pre.txt
+    - route-pre.txt
+    - services-pre.txt
+    - sysctl-pre.txt
+    - history.txt

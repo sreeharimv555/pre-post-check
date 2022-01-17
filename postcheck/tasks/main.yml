@@ -1,0 +1,9 @@
+---
+- name: Common post-checks
+  include: common_postchecks.yml
+
+- name: Compare pre-post results
+  include: compare_pre_post.yml
+
+- name: send comparison to e-mail
+  include: post_check_email_fail.yml

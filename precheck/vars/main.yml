@@ -1,0 +1,4 @@
+---
+# vars file for precheck
+precheck_folder: /var/opt/{{ ansible_hostname }}/{{ ansible_date_time.year }}/{{ ansible_date_time.month }}
+server_name: "{{ ansible_hostname }}"

@@ -1,0 +1,8 @@
+---
+- name: Playbook for collecting post checks 
+  hosts: localhost
+  become: yes
+
+  roles:
+      - postcheck
+

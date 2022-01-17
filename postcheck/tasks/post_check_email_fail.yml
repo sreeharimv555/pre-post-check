@@ -1,0 +1,39 @@
+---
+- name: Check the count of file systems before patching 
+  shell: cat {{ postcheck_folder }}/df-pre.txt | wc -l
+  register: df_pre
+
+- name: Check the count of file systems after patching 
+  shell: cat {{ postcheck_folder }}/df-pre.txt | wc -l
+  register: df_post
+
+- name: Check the count of running services before patching 
+  shell: cat {{ postcheck_folder }}/services-pre.txt | wc -l
+  register: serv_pre
+
+- name: Check the count of running services after patching 
+  shell: cat {{ postcheck_folder }}/services-pre.txt | wc -l
+  register: serv_post
+
+- name: Check the kernel version before patching 
+  shell: cat {{ postcheck_folder }}/osver-pre.txt 
+  register: kernel_pre
+
+- name: Collecting information for send e-mail
+  mail:
+    subject: Post-check {{ ansible_hostname }}
+    body: "Post-check on {{ ansible_hostname }} has been completed. Details are follows.\n\n\
+           Hostname: {{ ansible_hostname }}\n\n
+           Kernel_version: {{ ansible_kernel }}\n
+           OS_Version after patching: {{ ansible_distribution }}  {{ ansible_distribution_version }}\n\n
+           OS_Version before patching: {{ kernel_pre.stdout }}\n\n
+           Filesystem count after patching: {{ df_pre.stdout }}\n
+           Filesystem count before_Patching: {{ df_post.stdout }}\n\n
+           Running service count before patching: {{ serv_pre.stdout }}\n
+           Running service count after patching: {{ serv_post.stdout }}\n\n"
+    to: localhost 
+  ignore_errors: yes
+
+- fail:
+    msg: " ONE OF THE POST CHECK FAILED ON  {{ ansible_hostname }}. PLEASE CHECK THE PLAYBOOK LOGS AND FIX IT "
+  when: df_stat.stdout ==  "df_not_match" or serv_stat_oel7.stdout == "serv_not_match" or diff_resolv.stdout == "resolv_not_match"

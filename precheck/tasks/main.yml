@@ -1,0 +1,4 @@
+---
+- name: precheck 
+  include: common_prechecks.yml
+
