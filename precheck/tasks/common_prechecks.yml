@@ -29,7 +29,7 @@
   shell: route -n > {{ precheck_folder }}/route-pre.txt
 
 - name: Collect history details
-  shell: history > {{ precheck_folder }}/history.txt
+  shell: cat ~/.bash_history > {{ precheck_folder }}/history.txt
 
 - name: Create folder on controller machine. 
   file:
