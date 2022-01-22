@@ -3,9 +3,19 @@
   hosts: localhost
   become: yes
 
-
   roles:
     - precheck
+  
+- name: Copy pre-checks to remote server
+  hosts: 53f2d04f391c.mylabserver.com
+  become: yes
+
+  tasks:
+    - name: Copy prechecks to remote server
+      synchronize:
+        src: /root/pre-post
+        dest: /root
+
 
 
 - name: Copy pre-checks to remote server
